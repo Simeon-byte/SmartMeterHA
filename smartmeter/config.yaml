@@ -1,7 +1,7 @@
 name: SmartmeterHA
 version: "1.0.0"
 slug: smartmeter
-description: Read encrypted VKW smart meter telegrams and publish Home Assistant MQTT sensors
+description: Verschluesselte VKW-Smartmeter-Telegramme lesen und Home-Assistant-MQTT-Sensoren bereitstellen
 url: https://github.com/simeon/SmartmeterHA
 arch:
   - amd64

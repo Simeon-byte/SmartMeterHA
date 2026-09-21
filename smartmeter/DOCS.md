@@ -1,35 +1,35 @@
 # SmartmeterHA
 
-This app reads encrypted VKW smart meter telegrams from one serial meter and publishes MQTT discovery entities for Home Assistant.
+Diese App liest verschluesselte VKW-Smartmeter-Telegramme von einem Zaehler aus und veroeffentlicht MQTT-Discovery-Entitaeten fuer Home Assistant.
 
-## Requirements
+## Voraussetzungen
 
-- Home Assistant OS or Supervised with the official Mosquitto Broker app
-- The Home Assistant MQTT integration configured for that broker
-- A supported serial USB adapter connected to the host
-- The meter key as a hexadecimal string
+- Home Assistant OS oder Supervised mit der offiziellen Mosquitto-Broker-App
+- Die MQTT-Integration von Home Assistant
+- Ein unterstuetzter serieller USB-Adapter am Host
+- Der hexadezimale Kundenschnittstellen-Schluessel des Zaehlerbetreibers
 
-Install one app instance per meter. To read two meters, install this app twice with different serial devices and device names.
+Pro App-Installation wird ein Zaehler gelesen. Fuer zwei Zaehler die App zweimal mit unterschiedlichen seriellen Schnittstellen installieren.
 
-## Configuration
+## Konfiguration
 
-Configure the app from its **Configuration** tab:
+Die App im Tab **Konfiguration** einrichten:
 
-- `key`: Required hexadecimal reader key. It is stored as a password option.
-- `comport`: Serial device exposed to the app, normally a stable `/dev/serial/by-id/...` path.
-- `device_name`: Prefix used for MQTT topics and the Home Assistant device name. Keep the existing value when migrating to preserve entities.
-- `log_level`: `0` for errors only, `1` for operational logs, or `2` for telegram data and decoded values.
+- `key`: Erforderlicher hexadezimaler Leseschluessel. Wird als Passwort-Option gespeichert.
+- `comport`: Serielle Schnittstelle der App, normalerweise ein stabiler Pfad unter `/dev/serial/by-id/...`.
+- `device_name`: Praefix fuer MQTT-Topics und Name des Home-Assistant-Geraets. Bei einer Migration den bisherigen Wert beibehalten.
+- `log_level`: `0` fuer Fehler, `1` fuer Betriebsprotokolle oder `2` fuer Telegrammdaten und dekodierte Werte.
 
-The app obtains MQTT connection details from the Home Assistant MQTT service. Install and configure the official Mosquitto Broker app before starting SmartmeterHA.
+Die App bezieht die MQTT-Verbindungsdaten aus dem MQTT-Dienst von Home Assistant. Vor dem Start von SmartmeterHA die offizielle Mosquitto-Broker-App installieren und konfigurieren.
 
-## Home Assistant entities
+## Home-Assistant-Entitaeten
 
-The reader publishes MQTT discovery configuration and state topics using the existing device-name topic prefix. Discovery is sent again when Home Assistant publishes `online` on `homeassistant/status`.
+Der Reader veroeffentlicht MQTT-Discovery-Konfigurationen und Status-Topics mit dem bisherigen Geraetenamen als Topic-Praefix. Discovery wird nach einer `online`-Nachricht auf `homeassistant/status` erneut veroeffentlicht.
 
-Changing `device_name` creates a new set of Home Assistant entities. Keep the old name to avoid orphaned entities during migration.
+Eine Aenderung von `device_name` erstellt einen neuen Satz Home-Assistant-Entitaeten. Den bisherigen Namen beibehalten, um verwaiste Entitaeten und doppelte Geraete zu vermeiden.
 
-## Troubleshooting
+## Fehlerbehebung
 
-Check the app log for the selected serial device and MQTT connection status. Confirm that the configured device exists under `/dev/serial/by-id/` and that the reader key is the exact hexadecimal key supplied by the meter operator.
+Das App-Protokoll zeigt die ausgewaehlte serielle Schnittstelle und den MQTT-Verbindungsstatus. Pruefen, ob das konfigurierte Geraet unter `/dev/serial/by-id/` vorhanden ist und ob der Leseschluessel exakt dem vom Zaehlerbetreiber bereitgestellten hexadezimalen Schluessel entspricht.
 
-If the app cannot connect to MQTT, verify that the MQTT integration is configured and that the Mosquitto Broker app is running.
+Wenn keine MQTT-Verbindung hergestellt werden kann, pruefen, ob die MQTT-Integration eingerichtet und die Mosquitto-Broker-App gestartet ist.

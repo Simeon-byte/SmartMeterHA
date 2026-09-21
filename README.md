@@ -1,56 +1,56 @@
-# SmartmeterHA Home Assistant App
+# SmartmeterHA Home-Assistant-App
 
-Home Assistant app for reading encrypted VKW smart meter telegrams from a Kaifa MA309M H4LAT1 customer interface and exposing the measurements through MQTT discovery.
+Home-Assistant-App zum Auslesen verschluesselter VKW-Smartmeter-Telegramme eines Kaifa MA309M H4LAT1 und zum Bereitstellen der Messwerte ueber die MQTT-Discovery.
 
-The reader is designed for one meter per app installation. Install the app twice when two serial meters need to be read.
+Die Anwendung ist fuer einen Zaehler pro App-Installation ausgelegt. Fuer zwei Zaehler wird die App zweimal mit unterschiedlichen seriellen Schnittstellen installiert.
 
-## Requirements
+## Voraussetzungen
 
-- Home Assistant OS or Supervised
-- The official Mosquitto Broker app
-- The Home Assistant MQTT integration configured for Mosquitto
-- A supported serial USB adapter connected to the Home Assistant host
-- The hexadecimal customer-interface key from the meter operator
+- Home Assistant OS oder Home Assistant Supervised
+- Die offizielle Mosquitto-Broker-App
+- Die MQTT-Integration von Home Assistant, eingerichtet fuer diesen Broker
+- Ein unterstuetzter USB-Seriell-Adapter am Home-Assistant-Host
+- Der hexadezimale Kundenschnittstellen-Schluessel des Zaehlerbetreibers
 
 ## Installation
 
-1. Add this Git repository to **Settings > Apps > App repository**.
-2. Install the **SmartmeterHA** app.
-3. Configure the serial device, reader key, device name, and log level.
-4. Start the app and inspect its logs.
+1. Dieses Git-Repository unter **Einstellungen > Apps > App-Repository** hinzufuegen.
+2. Die **SmartmeterHA**-App installieren.
+3. Serielle Schnittstelle, Leseschluessel, Geraetename und Log-Level konfigurieren.
+4. Die App starten und die App-Protokolle pruefen.
 
-The app uses the Home Assistant MQTT service. MQTT broker credentials are not duplicated in the SmartmeterHA configuration.
+Die App verwendet den MQTT-Dienst von Home Assistant. MQTT-Broker-Zugangsdaten muessen nicht zusaetzlich in SmartmeterHA hinterlegt werden.
 
-## Configuration
+## Konfiguration
 
-| Option | Description |
+| Option | Beschreibung |
 | --- | --- |
-| `key` | Required hexadecimal reader key. Stored as a password option. |
-| `comport` | Serial device. Prefer a stable `/dev/serial/by-id/...` path. |
-| `device_name` | MQTT topic prefix and Home Assistant device name. Keep the old value when migrating. |
-| `log_level` | `0` for errors, `1` for operational logs, `2` for telegram data and decoded values. |
+| `key` | Erforderlicher hexadezimaler Leseschluessel. Wird als Passwort-Option gespeichert. |
+| `comport` | Serielle Schnittstelle. Wenn moeglich einen stabilen Pfad unter `/dev/serial/by-id/...` verwenden. |
+| `device_name` | Praefix fuer MQTT-Topics und Name des Home-Assistant-Geraets. Bei einer Migration den bisherigen Wert beibehalten. |
+| `log_level` | `0` fuer Fehler, `1` fuer Betriebsprotokolle, `2` fuer Telegrammdaten und dekodierte Werte. |
 
-The app exposes host UART devices through Home Assistant's app hardware mapping. The default `/dev/ttyUSB0` is provided for simple installations, but a stable by-id path is preferred when available.
+Die App stellt die UART-Geraete des Hosts ueber das Hardware-Mapping von Home Assistant bereit. `/dev/ttyUSB0` ist der Standardwert fuer einfache Installationen. Ein stabiler by-id-Pfad wird bevorzugt.
 
-## MQTT entities
+## MQTT-Entitaeten
 
-The existing reader publishes the same MQTT topics and discovery identifiers as the original container deployment. Home Assistant discovery messages are sent when the app starts and again after an `online` message on `homeassistant/status`.
+Der bestehende Reader veroeffentlicht dieselben MQTT-Topics und Discovery-Kennungen wie die urspruengliche Container-Installation. Discovery-Nachrichten werden beim Start der App und erneut nach einer `online`-Nachricht auf `homeassistant/status` gesendet.
 
-Changing `device_name` creates a new device and a new set of entities. Keep the existing name to preserve entity registry entries.
+Wenn `device_name` geaendert wird, erstellt Home Assistant ein neues Geraet und neue Entitaeten. Den bisherigen Namen beibehalten, damit Eintraege in der Entitaeten-Registry erhalten bleiben.
 
-## Supported hardware
+## Unterstuetzte Hardware
 
-- Kaifa MA309M H4LAT1 smart meter used by VKW Vorarlberg
-- USB serial/MBus adapter exposing the meter interface as a UART device
+- Kaifa MA309M H4LAT1 Smartmeter aus dem VKW-Gebiet Vorarlberg
+- USB-Seriell-/MBus-Adapter, der die Kundenschnittstelle als UART-Geraet bereitstellt
 
-Other meters are not tested.
+Andere Zaehler wurden nicht getestet.
 
-## Development
+## Entwicklung
 
-The app source is under `smartmeter/`. The reader modules are intentionally copied unchanged from the original container implementation in the first packaging phase.
+Der Quellcode der App liegt unter `smartmeter/`. Die Reader-Module werden in der ersten Packaging-Phase bewusst unveraendert aus der urspruenglichen Container-Implementierung uebernommen.
 
-Build and runtime validation should be performed on a Home Assistant OS or Supervised test installation with a real serial adapter and meter. The local repository does not emulate encrypted meter telegrams.
+Build- und Laufzeit-Tests sollten auf einer Home-Assistant-OS- oder Supervised-Testinstallation mit echtem Adapter und Zaehler durchgefuehrt werden. Das lokale Repository simuliert keine verschluesselten Zaehlertelegramme.
 
-## Credits
+## Danksagung
 
-The reader is based on the work by [greenMikeEU](https://github.com/greenMikeEU) and the guide by [Michael Reitbauer](https://www.michaelreitbauer.at/kaifa-ma309-auslesen-smart-meter-evn/).
+Der Reader basiert auf der Arbeit von [greenMikeEU](https://github.com/greenMikeEU) und der Anleitung von [Michael Reitbauer](https://www.michaelreitbauer.at/kaifa-ma309-auslesen-smart-meter-evn/).
