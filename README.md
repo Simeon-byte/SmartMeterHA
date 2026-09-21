@@ -17,7 +17,7 @@ Bevor du loslegst, solltest du Folgendes vorbereitet haben:
 ## Installation in Home Assistant
 
 1. Öffne in Home Assistant unter Einstellungen > Geräte & Dienste > Apps > App-Repositorys die Repository-Verwaltung.
-2. Füge dieses Git-Repository hinzu.
+2. Füge `https://github.com/Simeon-byte/SmartMeterHA` als Git-Repository hinzu.
 3. Wechsle in den Bereich Apps und installiere SmartmeterHA.
 4. Starte die App und öffne die Konfiguration.
 5. Trage die nötigen Werte ein:
