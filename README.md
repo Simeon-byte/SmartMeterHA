@@ -24,7 +24,7 @@ Bevor du loslegst, solltest du Folgendes vorbereitet haben:
    - `key`: Leseschlüssel des Zählers
    - `comport`: serielle Schnittstelle, am besten ein stabiler Pfad unter `/dev/serial/by-id/...`
    - `device_name`: Name für das Gerät und das MQTT-Topic-Präfix
-   - `log_level`: `0` = Fehler, `1` = Betriebsprotokoll, `2` = Telegrammdaten und dekodierte Werte
+   - `log_level`: `error`, `warning`, `info`, `debug` oder `trace`
 6. Speichere die Einstellungen und starte die App erneut.
 7. Prüfe die App-Logs, damit die Verbindung zum Zähler und zum MQTT-Broker korrekt aufgebaut wird.
 
@@ -32,12 +32,14 @@ Bevor du loslegst, solltest du Folgendes vorbereitet haben:
 
 ## Konfiguration
 
-| Option        | Beschreibung                                                                                                                 |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `key`         | Erforderlicher hexadezimaler Leseschlüssel. Wird als Passwort-Option gespeichert.                                            |
-| `comport`     | Serielle Schnittstelle. Wenn möglich, einen stabilen Pfad unter `/dev/serial/by-id/...` verwenden.                           |
-| `device_name` | Präfix für MQTT-Topics und Name des Home-Assistant-Geräts. Bei einer Migration sollte der bisherige Wert beibehalten werden. |
-| `log_level`   | `0` für Fehler, `1` für Betriebsprotokolle, `2` für Telegrammdaten und dekodierte Werte.                                     |
+| Option        | Beschreibung                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `key`         | Erforderlicher hexadezimaler Leseschlüssel. Wird als Passwort-Option gespeichert.                                                          |
+| `comport`     | Serielle Schnittstelle. Wenn möglich, einen stabilen Pfad unter `/dev/serial/by-id/...` verwenden.                                         |
+| `device_name` | Präfix für MQTT-Topics und Name des Home-Assistant-Geräts. Bei einer Migration sollte der bisherige Wert beibehalten werden.               |
+| `log_level`   | `error` für Fehler, `warning` für Warnungen, `info` für Betriebsstatus, `debug` für detaillierte Diagnose und `trace` für rohe Telegramme. |
+
+Die gewählte Stufe und alle schwerwiegenderen Meldungen werden angezeigt. Bei `debug` wird der Zähler-Schlüssel zur Fehlersuche im Klartext geloggt. Das MQTT-Passwort wird niemals geloggt. `trace` sollte nur vorübergehend verwendet werden, da dabei vollständige Telegramme in den App-Logs erscheinen.
 
 Ein stabiler Pfad wie `/dev/serial/by-id/...` ist besser als `/dev/ttyUSB0`, weil die Schnittstelle sich sonst nach einem Neustart ändern kann.
 
@@ -48,7 +50,11 @@ Ein stabiler Pfad wie `/dev/serial/by-id/...` ist besser als `/dev/ttyUSB0`, wei
 
 ## MQTT-Entitäten
 
-Der Reader veröffentlicht automatisch die Discovery-Konfigurationen und Status-Topics für Home Assistant. Nach einem Start der App und nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut gesendet.
+Der Reader veröffentlicht automatisch die Discovery-Konfigurationen und Status-Topics für Home Assistant. Unter `<device_name>/status` wird nach erfolgreicher MQTT-Verbindung retained `online` veröffentlicht. Der MQTT Last Will veröffentlicht bei einem unerwarteten Verbindungsabbruch retained `offline`.
+
+Alle Messwertsensoren verwenden dieses Topic als Availability-Topic. Home Assistant zeigt die Sensoren daher automatisch als nicht verfügbar an, wenn der Reader die MQTT-Verbindung verliert.
+
+Nach einem Start der App und nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut gesendet.
 
 Wenn `device_name` geändert wird, legt Home Assistant ein neues Gerät und neue Entitäten an. Der bisherige Name sollte deshalb erhalten bleiben, damit verwaiste Einträge und doppelte Geräte vermieden werden.
 

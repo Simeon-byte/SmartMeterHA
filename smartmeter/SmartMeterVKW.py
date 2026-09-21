@@ -3,6 +3,7 @@ import sys
 from time import sleep
 import binascii
 import datetime
+import logging
 import time
 import serial
 from Cryptodome.Cipher import AES
@@ -14,37 +15,66 @@ from HADiscovery import sendDiscoveryMessage
 # Environment Variable setzen, damit der Fehler nicht auf der Console Kommt
 os.environ["TERM"] = "xterm"
 
-# LogLevel
-# 0 - keine Logs
-# 1 - nur Logs
-# 2 - Logs und Daten
-logLevel = int(os.getenv("LOG_LEVEL", 0))
+TRACE_LEVEL = logging.DEBUG - 1
+logging.addLevelName(TRACE_LEVEL, "TRACE")
+
+LOG_LEVELS = {
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "TRACE": TRACE_LEVEL,
+}
+
+logLevelName = os.getenv("LOG_LEVEL", "INFO").strip().upper()
+if logLevelName not in LOG_LEVELS:
+    print(
+        "Invalid LOG_LEVEL {!r}. Expected one of: {}".format(
+            logLevelName, ", ".join(LOG_LEVELS)
+        ),
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+logger = logging.getLogger("smartmeter")
+logger.setLevel(LOG_LEVELS[logLevelName])
+logger.propagate = False
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(
+    logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+)
+logger.addHandler(handler)
 
 deviceName = os.getenv("DEVICE_NAME", "SmartMeterVKW")
+logger.info("Device name: %s", deviceName)
 
 mqttBroker = os.getenv("MQTT_BROKER", "localhost")
 mqttuser = os.getenv("MQTT_USER", None)
 mqttpasswort = os.getenv("MQTT_PASSWORD", None)
 mqttport = int(os.getenv("MQTT_PORT", 1883))
-if logLevel > 0:
-    print("mqttBroker", mqttBroker)
-    print("mqttuser", mqttuser)
-    print("mqttpasswort", "[is set]" if (mqttpasswort is not None) else "None")
-    print("mqttport", mqttport)
+logger.info("MQTT broker: %s", mqttBroker)
+logger.info("MQTT user: %s", mqttuser)
+logger.info("MQTT password: %s", "[is set]" if mqttpasswort is not None else "None")
+logger.info("MQTT port: %s", mqttport)
 # Comport Config/Init
 comport = os.getenv("COMPORT", "/dev/ttyUSB0")
-if logLevel > 0:
-    print("Using Comport", comport)
+logger.info("Serial port: %s", comport)
 
-key = os.getenv("KEY", None)
-if key is None:
-    print("No key provided")
+key_value = os.getenv("KEY")
+if key_value is None:
+    logger.error("No meter key provided")
     sys.exit()
-key = binascii.unhexlify(key)
+logger.info("Meter key is present")
+logger.debug("Meter key: %s", key_value)
+try:
+    key = binascii.unhexlify(key_value)
+except binascii.Error as err:
+    logger.error("Meter key is not valid hexadecimal: %s", err)
+    sys.exit(2)
 
 
 def clear():
-    if logLevel > 1:
+    if logger.isEnabledFor(logging.DEBUG):
         if name == "nt":
             _ = system("cls")
 
@@ -52,25 +82,25 @@ def clear():
             _ = system("clear")
 
 
-def log(string, messageLevel):
-    if logLevel >= messageLevel:
-        print(string)
-
-
 def mqttPublish(topic, payload):
     topic = deviceName + "/" + topic
     response = client.publish(topic, payload, 1)  # somehow buggy?
     if not response.is_published():
-        log("response could not be published", 2)
+        logger.warning("MQTT message could not be published: %s", topic)
 
 
 client = mqtt.Client(deviceName)
+statusTopic = f"{deviceName}/status"
+client.will_set(statusTopic, "offline", qos=1, retain=True)
 try:
     client.username_pw_set(mqttuser, mqttpasswort)
     client.connect(mqttBroker, mqttport)
-except:
-    log("Broker nicht erreichbar / Falsche Credentials !", 1)
-log("Connected to Broker", 1)
+    client.publish(statusTopic, "online", qos=1, retain=True)
+    logger.info("Connected to Broker")
+except Exception as err:
+    logger.error(
+        "MQTT broker is not reachable or credentials are invalid: %s", err
+    )
 
 
 # Send HomeAssistant disvocery message
@@ -79,13 +109,12 @@ sendDiscoveryMessage(client, deviceName)
 
 # on Message Callback
 def on_message(client, userdata, msg):
-    log(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic", 2)
+    logger.debug("Received `%s` from `%s` topic", msg.payload.decode(), msg.topic)
 
     if msg.topic == "homeassistant/status":
         if msg.payload.decode() == "online":
-            log(
-                "Received online status from Homeassistant - Re-sending Discovery Message",
-                1,
+            logger.info(
+                "Received online status from Homeassistant - Re-sending Discovery Message"
             )
             sendDiscoveryMessage(client, deviceName)
 
@@ -97,23 +126,23 @@ MAX_RECONNECT_DELAY = 60
 
 
 def on_disconnect(client, userdata, rc):
-    log(f"Disconnected with result code: {rc}", 1)
+    logger.warning("Disconnected with result code: %s", rc)
     reconnect_count, reconnect_delay = 0, FIRST_RECONNECT_DELAY
     while reconnect_count < MAX_RECONNECT_COUNT:
-        log(f"Reconnecting in {reconnect_delay} seconds...", 1)
+        logger.debug("Reconnecting in %s seconds...", reconnect_delay)
         time.sleep(reconnect_delay)
 
         try:
             client.reconnect()
-            log("Reconnected successfully!", 1)
+            logger.info("Reconnected successfully!")
             return
         except Exception as err:
-            log(f"{err}. Reconnect failed. Retrying...", 1)
+            logger.warning("%s. Reconnect failed. Retrying...", err)
 
         reconnect_delay *= RECONNECT_RATE
         reconnect_delay = min(reconnect_delay, MAX_RECONNECT_DELAY)
         reconnect_count += 1
-    log(f"Reconnect failed after {reconnect_count} attempts. Exiting...", 1)
+    logger.error("Reconnect failed after %s attempts. Exiting...", reconnect_count)
     sys.exit(1)
 
 
@@ -129,7 +158,7 @@ def recv(serial):
     while True:
         data = serial.read_all()
         if data == "":
-            log("\n...", 2)
+            logger.debug("Waiting for serial data")
             continue
         else:
             # log ("\n...lausche auf Schnittstelle", 2)
@@ -149,7 +178,7 @@ if __name__ == "__main__":
     # Header Startbytes vom Vorarlberger Smartmeter
     headerstart = "68fafa68"
 
-    print("Starting SmartMeter with logLevel " + str(logLevel))
+    logger.info("Starting SmartMeter with log level %s", logLevelName)
     while True:
 
         sleep(5)
@@ -165,14 +194,14 @@ if __name__ == "__main__":
             else:
                 # syncronisierung nötig
                 clear()
-                log("\n*** Synchronisierung laeuft ***\n", 2)
+                logger.warning("Serial data is out of sync; resynchronizing")
                 # log ("Laenge von data = ", len(data))
                 serial.flushInput()
                 sleep(0.5)
 
         if doit == 1:
             clear()
-            log("data: " + data.hex(), 2)
+            logger.log(TRACE_LEVEL, "data: " + data.hex())
             msglen1 = int(hex(data[1]), 16)  # 1. FA --- 250 Byte
             # log ("msg1: ", msglen1)
 
@@ -199,28 +228,18 @@ if __name__ == "__main__":
             # log (hex(data[msglen1+7]))
 
             msg2 = data[msglen1 + 6 + header2 : (msglen1 + 5 + 5 + msglen2)]
-            # log (msg2.hex())
-            # log ("Länge msg2 :" ,len(msg2))
-
             cyphertext = msg1 + msg2
-            # log ("\ncyphertext:")
-            # log (cyphertext.hex())
-            # log ("Länge: ",len(cyphertext))
 
             cyphertext_bytes = binascii.unhexlify(cyphertext.hex())
             cipher = AES.new(key, AES.MODE_GCM, nonce=iv)
             decrypted = cipher.decrypt(cyphertext_bytes)
-
-            # log("\nDecrypted:", 2)
-            # log(decrypted.hex(), 2)
 
             # OBIS Code Werte aus decrypted.hex auslesen
             databin = decrypted.hex()
             ueberschrift = (
                 "\n\t\t*** KUNDENSCHNITTSTELLE ***\n\nOBIS Code\tBezeichnung\t\t\t Wert"
             )
-            log(ueberschrift, 2)
-            # log(databin, 2)
+            logger.debug(ueberschrift)
 
             obis_len = 12
 
@@ -252,13 +271,13 @@ if __name__ == "__main__":
                 # datum_zeit = "0.0.1.0.0.255\tDatum Zeit:\t\t\t "+obis_datum_zeit.strftime("%d.%m.%Y %H:%M:%S")
                 datum_zeit = obis_datum_zeit.strftime("%d.%m.%Y %H:%M:%S")
 
-                log(datum_zeit, 2)
+                logger.debug(datum_zeit)
                 mqttPublish("Zeit", obis_datum_zeit.strftime("%Y-%m-%d %H:%M:%S"))
 
             else:
                 # obis fehler
                 datum_zeit = "\n*** kann OBIS Code nicht finden ===> key Fehler? ***\n"
-                log(datum_zeit, 1)
+                logger.warning(datum_zeit)
 
             # Zählernummer des Netzbetreibers
             # 0000600100ff
@@ -289,7 +308,7 @@ if __name__ == "__main__":
                     + bytes_object.decode("ASCII")
                 )
                 zaehlernummerfilename = bytes_object.decode("ASCII")
-                log(zaehlernummer, 2)
+                logger.debug(zaehlernummer)
                 mqttPublish("Zaehlernummer", bytes_object.decode("ASCII"))
 
             # COSEM Logical Device Name
@@ -321,7 +340,7 @@ if __name__ == "__main__":
                     + bytes_object.decode("ASCII")
                 )
 
-                log(cosemlogdevname, 2)
+                logger.debug(cosemlogdevname)
                 mqttPublish("Cosemlogdevname", bytes_object.decode("ASCII"))
 
             # Spannung L1 (V)
@@ -342,7 +361,7 @@ if __name__ == "__main__":
                     int(obis_spannungl1, 16) / 10
                 )
 
-                log(spannungl1, 2)
+                logger.debug(spannungl1)
                 mqttPublish("SpannungL1", int(obis_spannungl1, 16) / 10)
 
             # Spannung L2 (V)
@@ -363,7 +382,7 @@ if __name__ == "__main__":
                     int(obis_spannungl2, 16) / 10
                 )
 
-                log(spannungl2, 2)
+                logger.debug(spannungl2)
                 mqttPublish("SpannungL2", int(obis_spannungl2, 16) / 10)
 
             # Spannung L3 (V)
@@ -384,7 +403,7 @@ if __name__ == "__main__":
                     int(obis_spannungl3, 16) / 10
                 )
 
-                log(spannungl3, 2)
+                logger.debug(spannungl3)
                 mqttPublish("SpannungL3", int(obis_spannungl3, 16) / 10)
 
             # Strom L1 (A)
@@ -405,7 +424,7 @@ if __name__ == "__main__":
                     int(obis_stroml1, 16) / 100
                 )
 
-                log(stroml1, 2)
+                logger.debug(stroml1)
                 mqttPublish("StromL1", int(obis_stroml1, 16) / 100)
 
             # Strom L2 (A)
@@ -426,7 +445,7 @@ if __name__ == "__main__":
                     int(obis_stroml2, 16) / 100
                 )
 
-                log(stroml2, 2)
+                logger.debug(stroml2)
                 mqttPublish("StromL2", int(obis_stroml2, 16) / 100)
 
             # Strom L3 (A)
@@ -447,7 +466,7 @@ if __name__ == "__main__":
                     int(obis_stroml3, 16) / 100
                 )
 
-                log(stroml3, 2)
+                logger.debug(stroml3)
                 mqttPublish("StromL3", int(obis_stroml3, 16) / 100)
 
             # Wirkleistung Bezug +P (W)
@@ -468,7 +487,7 @@ if __name__ == "__main__":
                     int(obis_wirkleistungbezug, 16) / 1000
                 )
 
-                log(wirkleistungbezug, 2)
+                logger.debug(wirkleistungbezug)
                 mqttPublish(
                     "MomentanleistungP",
                     int(obis_wirkleistungbezug, 16),
@@ -493,7 +512,7 @@ if __name__ == "__main__":
                     + str(int(obis_wirkleistunglieferung, 16) / 1000)
                 )
 
-                log(wirkleistunglieferung, 2)
+                logger.debug(wirkleistunglieferung)
                 mqttPublish(
                     "MomentanleistungN",
                     int(obis_wirkleistunglieferung, 16),
@@ -517,7 +536,7 @@ if __name__ == "__main__":
                     int(obis_wirkenergiebezug, 16) / 1000
                 )
 
-                log(wirkenergiebezug, 2)
+                logger.debug(wirkenergiebezug)
                 mqttPublish("WirkenergieP", int(obis_wirkenergiebezug, 16) / 1000)
 
             # Wirkenergie Lieferung -A (Wh)
@@ -539,7 +558,7 @@ if __name__ == "__main__":
                     + str(int(obis_wirkenergielieferung, 16) / 1000)
                 )
 
-                log(wirkenergielieferung, 2)
+                logger.debug(wirkenergielieferung)
                 mqttPublish("WirkenergieN", int(obis_wirkenergielieferung, 16) / 1000)
 
             # Blindleistung Bezug +R (Wh)
@@ -561,7 +580,7 @@ if __name__ == "__main__":
                     + str(int(obis_blindleistungbezug, 16) / 1000)
                 )
 
-                log(blindleistungbezug, 2)
+                logger.debug(blindleistungbezug)
                 mqttPublish("BlindleistungP", int(obis_blindleistungbezug, 16) / 1000)
 
             # Blindleistung Lieferung -R (Wh)
@@ -583,7 +602,7 @@ if __name__ == "__main__":
                     + str(int(obis_blindleistunglieferung, 16) / 1000)
                 )
 
-                log(blindleistunglieferung, 2)
+                logger.debug(blindleistunglieferung)
                 mqttPublish(
                     "BlindleistungN",
                     int(obis_blindleistunglieferung, 16) / 1000,

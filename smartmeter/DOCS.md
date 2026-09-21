@@ -16,13 +16,19 @@ Die Einstellungen der App im Tab Konfiguration sind in der Regel die folgenden:
 - `key`: Erforderlicher hexadezimaler Leseschlüssel. Wird als Passwort-Option gespeichert.
 - `comport`: Serielle Schnittstelle der App, am besten ein stabiler Pfad unter `/dev/serial/by-id/...`.
 - `device_name`: Präfix für die MQTT-Topics und Name des Home-Assistant-Geräts. Bei einer Migration sollte der bisherige Wert beibehalten werden.
-- `log_level`: `0` für Fehler, `1` für Betriebsprotokolle, `2` für Telegrammdaten und dekodierte Werte.
+- `log_level`: `error`, `warning`, `info`, `debug` oder `trace`.
+
+Die gewählte Stufe und alle schwerwiegenderen Meldungen werden angezeigt. `error` protokolliert nur Fehler, `warning` zusätzlich Warnungen, `info` den normalen Betriebsstatus, `debug` detaillierte Diagnose inklusive des Zähler-Schlüssels im Klartext und `trace` zusätzlich vollständige Telegramme. Das MQTT-Passwort wird unabhängig vom Log-Level niemals geloggt. `debug` und `trace` sollten nur vorübergehend zur Fehlersuche aktiviert werden.
 
 Die MQTT-Verbindungsdaten werden automatisch aus dem MQTT-Dienst von Home Assistant übernommen. Es müssen keine zusätzlichen Zugangsdaten in der App hinterlegt werden.
 
 ## Verhalten der Home-Assistant-Entitäten
 
-Der Reader veröffentlicht MQTT-Discovery-Konfigurationen und Status-Topics mit dem aktuellen Gerätenamen als Topic-Präfix. Nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut veröffentlicht.
+Der Reader veröffentlicht MQTT-Discovery-Konfigurationen und Status-Topics mit dem aktuellen Gerätenamen als Topic-Präfix. Das Status-Topic `<device_name>/status` meldet nach erfolgreicher MQTT-Verbindung retained `online`. Der konfigurierte MQTT Last Will meldet bei einem unerwarteten Verbindungsabbruch retained `offline`.
+
+Alle Messwertsensoren referenzieren dieses Topic als `availability_topic` mit `online` als verfügbarem und `offline` als nicht verfügbarem Payload. Home Assistant kann dadurch die Verfügbarkeit der Entitäten automatisch darstellen.
+
+Nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut veröffentlicht.
 
 Wenn `device_name` geändert wird, erstellt Home Assistant ein neues Gerät und neue Entitäten. Der bisherige Name sollte deshalb beibehalten werden, um verwaiste Einträge und doppelte Geräte zu vermeiden.
 

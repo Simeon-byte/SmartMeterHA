@@ -1,7 +1,7 @@
 name: SmartmeterHA
 version: '1.0.0'
 slug: smartmeter
-description: Verschluesselte VKW-Smartmeter-Telegramme lesen und Home-Assistant-MQTT-Sensoren bereitstellen
+description: Auslesen von Kaifa MA309 Stromzählern und bereitstellung der Daten über MQTT.
 url: https://github.com/Simeon-byte/SmartMeterHA
 arch:
     - amd64
@@ -17,10 +17,10 @@ options:
     key: null
     comport: /dev/ttyUSB0
     device_name: SmartMeterVKW
-    log_level: 1
+    log_level: info
 schema:
     key: password
     comport: device(subsystem=tty)
     device_name: str
-    log_level: int(0,2)
+    log_level: list(error|warning|info|debug|trace)
 stage: experimental

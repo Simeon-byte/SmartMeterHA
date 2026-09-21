@@ -166,4 +166,13 @@ def sendDiscoveryMessage(client, deviceName):
         },
     ]
     for topic in topics:
+        topic["payload"].update(
+            {
+                "availability_topic": f"{deviceName}/status",
+                "payload_available": "online",
+                "payload_not_available": "offline",
+            }
+        )
+
+    for topic in topics:
         client.publish(topic["topic"], json.dumps(topic["payload"]), qos=1)
