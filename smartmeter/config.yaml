@@ -1,26 +1,26 @@
 name: SmartmeterHA
-version: "1.0.0"
+version: '1.0.0'
 slug: smartmeter
 description: Verschluesselte VKW-Smartmeter-Telegramme lesen und Home-Assistant-MQTT-Sensoren bereitstellen
 url: https://github.com/simeon/SmartmeterHA
 arch:
-  - amd64
-  - aarch64
-  - armv7
+    - amd64
+    - aarch64
+    - armv7
 startup: application
 boot: auto
 init: true
 uart: true
 services:
-  - mqtt:need
+    - mqtt:need
 options:
-  key: null
-  comport: /dev/ttyUSB0
-  device_name: SmartMeterVKW
-  log_level: 1
+    key: null
+    comport: /dev/ttyUSB0
+    device_name: SmartMeterVKW
+    log_level: 1
 schema:
-  key: password
-  comport: device(subsystem=tty)
-  device_name: str
-  log_level: int(0,2)
+    key: password
+    comport: device(subsystem=tty)
+    device_name: str
+    log_level: int(0,2)
 stage: experimental

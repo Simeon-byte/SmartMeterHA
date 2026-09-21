@@ -1,55 +1,70 @@
-# SmartmeterHA Home-Assistant-App
+# SmartmeterHA – Home-Assistant-App
 
-Home-Assistant-App zum Auslesen verschluesselter VKW-Smartmeter-Telegramme eines Kaifa MA309M H4LAT1 und zum Bereitstellen der Messwerte ueber die MQTT-Discovery.
+Diese App liest verschlüsselte VKW-Smartmeter-Telegramme eines Kaifa MA309M H4LAT1 aus und veröffentlicht die Messwerte über MQTT-Discovery in Home Assistant.
 
-Die Anwendung ist fuer einen Zaehler pro App-Installation ausgelegt. Fuer zwei Zaehler wird die App zweimal mit unterschiedlichen seriellen Schnittstellen installiert.
+Die Anwendung ist pro Installation auf genau einen Zähler ausgelegt. Für zwei Zähler musst du die App daher zweimal mit unterschiedlichen seriellen Schnittstellen einrichten.
 
 ## Voraussetzungen
 
+Bevor du loslegst, solltest du Folgendes vorbereitet haben:
+
 - Home Assistant OS oder Home Assistant Supervised
 - Die offizielle Mosquitto-Broker-App
-- Die MQTT-Integration von Home Assistant, eingerichtet fuer diesen Broker
-- Ein unterstuetzter USB-Seriell-Adapter am Home-Assistant-Host
-- Der hexadezimale Kundenschnittstellen-Schluessel des Zaehlerbetreibers
+- Die MQTT-Integration von Home Assistant, korrekt für diesen Broker eingerichtet
+- Ein unterstützter USB-Seriell-/MBus-Adapter am Home-Assistant-Host
+- Den hexadezimalen Kundenschnittstellen-Schlüssel des Zählerbetreibers
 
-## Installation
+## Installation in Home Assistant
 
-1. Dieses Git-Repository unter **Einstellungen > Apps > App-Repository** hinzufuegen.
-2. Die **SmartmeterHA**-App installieren.
-3. Serielle Schnittstelle, Leseschluessel, Geraetename und Log-Level konfigurieren.
-4. Die App starten und die App-Protokolle pruefen.
+1. Öffne in Home Assistant unter Einstellungen > Geräte & Dienste > Apps > App-Repositorys die Repository-Verwaltung.
+2. Füge dieses Git-Repository hinzu.
+3. Wechsle in den Bereich Apps und installiere SmartmeterHA.
+4. Starte die App und öffne die Konfiguration.
+5. Trage die nötigen Werte ein:
+   - `key`: Leseschlüssel des Zählers
+   - `comport`: serielle Schnittstelle, am besten ein stabiler Pfad unter `/dev/serial/by-id/...`
+   - `device_name`: Name für das Gerät und das MQTT-Topic-Präfix
+   - `log_level`: `0` = Fehler, `1` = Betriebsprotokoll, `2` = Telegrammdaten und dekodierte Werte
+6. Speichere die Einstellungen und starte die App erneut.
+7. Prüfe die App-Logs, damit die Verbindung zum Zähler und zum MQTT-Broker korrekt aufgebaut wird.
 
-Die App verwendet den MQTT-Dienst von Home Assistant. MQTT-Broker-Zugangsdaten muessen nicht zusaetzlich in SmartmeterHA hinterlegt werden.
+> Die App nutzt den MQTT-Dienst von Home Assistant. Zusätzliche Zugangsdaten für den Broker müssen nicht separat in SmartmeterHA hinterlegt werden.
 
 ## Konfiguration
 
-| Option | Beschreibung |
-| --- | --- |
-| `key` | Erforderlicher hexadezimaler Leseschluessel. Wird als Passwort-Option gespeichert. |
-| `comport` | Serielle Schnittstelle. Wenn moeglich einen stabilen Pfad unter `/dev/serial/by-id/...` verwenden. |
-| `device_name` | Praefix fuer MQTT-Topics und Name des Home-Assistant-Geraets. Bei einer Migration den bisherigen Wert beibehalten. |
-| `log_level` | `0` fuer Fehler, `1` fuer Betriebsprotokolle, `2` fuer Telegrammdaten und dekodierte Werte. |
+| Option        | Beschreibung                                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `key`         | Erforderlicher hexadezimaler Leseschlüssel. Wird als Passwort-Option gespeichert.                                            |
+| `comport`     | Serielle Schnittstelle. Wenn möglich, einen stabilen Pfad unter `/dev/serial/by-id/...` verwenden.                           |
+| `device_name` | Präfix für MQTT-Topics und Name des Home-Assistant-Geräts. Bei einer Migration sollte der bisherige Wert beibehalten werden. |
+| `log_level`   | `0` für Fehler, `1` für Betriebsprotokolle, `2` für Telegrammdaten und dekodierte Werte.                                     |
 
-Die App stellt die UART-Geraete des Hosts ueber das Hardware-Mapping von Home Assistant bereit. `/dev/ttyUSB0` ist der Standardwert fuer einfache Installationen. Ein stabiler by-id-Pfad wird bevorzugt.
+Ein stabiler Pfad wie `/dev/serial/by-id/...` ist besser als `/dev/ttyUSB0`, weil die Schnittstelle sich sonst nach einem Neustart ändern kann.
 
-## MQTT-Entitaeten
+## Hinweise zur Einrichtung
 
-Der bestehende Reader veroeffentlicht dieselben MQTT-Topics und Discovery-Kennungen wie die urspruengliche Container-Installation. Discovery-Nachrichten werden beim Start der App und erneut nach einer `online`-Nachricht auf `homeassistant/status` gesendet.
+- Wenn du nur einen Zähler hast, reicht eine Installation aus.
+- Für zwei oder mehr Zähler installierst du die App mehrfach mit jeweils eigener serieller Schnittstelle.
 
-Wenn `device_name` geaendert wird, erstellt Home Assistant ein neues Geraet und neue Entitaeten. Den bisherigen Namen beibehalten, damit Eintraege in der Entitaeten-Registry erhalten bleiben.
+## MQTT-Entitäten
 
-## Unterstuetzte Hardware
+Der Reader veröffentlicht automatisch die Discovery-Konfigurationen und Status-Topics für Home Assistant. Nach einem Start der App und nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut gesendet.
+
+Wenn `device_name` geändert wird, legt Home Assistant ein neues Gerät und neue Entitäten an. Der bisherige Name sollte deshalb erhalten bleiben, damit verwaiste Einträge und doppelte Geräte vermieden werden.
+
+## Unterstützte Hardware
 
 - Kaifa MA309M H4LAT1 Smartmeter aus dem VKW-Gebiet Vorarlberg
-- USB-Seriell-/MBus-Adapter, der die Kundenschnittstelle als UART-Geraet bereitstellt
+- USB-Seriell-/MBus-Adapter, der die Kundenschnittstelle als UART-Gerät bereitstellt
 
-Andere Zaehler wurden nicht getestet.
+Andere Zähler wurden nicht getestet.
 
-## Entwicklung
+## Fehlerbehebung
 
-Der Quellcode der App liegt unter `smartmeter/`. Die Reader-Module werden in der ersten Packaging-Phase bewusst unveraendert aus der urspruenglichen Container-Implementierung uebernommen.
-
-Build- und Laufzeit-Tests sollten auf einer Home-Assistant-OS- oder Supervised-Testinstallation mit echtem Adapter und Zaehler durchgefuehrt werden. Das lokale Repository simuliert keine verschluesselten Zaehlertelegramme.
+- Prüfe, ob die konfigurierte Schnittstelle unter `/dev/serial/by-id/` wirklich vorhanden ist.
+- Stelle sicher, dass der Leseschlüssel exakt zum Schlüssel des Zählerbetreibers passt.
+- Wenn keine MQTT-Verbindung aufgebaut wird, prüfe, ob die MQTT-Integration in Home Assistant eingerichtet ist und der Mosquitto-Broker läuft.
+- Im Log der App kannst du die gewählte Schnittstelle und den Verbindungsstatus sehen.
 
 ## Danksagung
 

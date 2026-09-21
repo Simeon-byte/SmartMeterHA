@@ -1,35 +1,38 @@
 # SmartmeterHA
 
-Diese App liest verschluesselte VKW-Smartmeter-Telegramme von einem Zaehler aus und veroeffentlicht MQTT-Discovery-Entitaeten fuer Home Assistant.
+Diese App liest verschlüsselte VKW-Smartmeter-Telegramme eines Zählers aus und veröffentlicht die Messwerte über MQTT-Discovery für Home Assistant.
 
 ## Voraussetzungen
 
-- Home Assistant OS oder Supervised mit der offiziellen Mosquitto-Broker-App
-- Die MQTT-Integration von Home Assistant
-- Ein unterstuetzter serieller USB-Adapter am Host
-- Der hexadezimale Kundenschnittstellen-Schluessel des Zaehlerbetreibers
-
-Pro App-Installation wird ein Zaehler gelesen. Fuer zwei Zaehler die App zweimal mit unterschiedlichen seriellen Schnittstellen installieren.
+- Home Assistant mit aktivierter MQTT-Integration
+- Offizielle Mosquitto-Broker-App installiert und gestartet
+- Unterstützter serieller USB-Adapter am Host
+- Hexadezimaler Kundenschnittstellen-Schlüssel des Zählerbetreibers
 
 ## Konfiguration
 
-Die App im Tab **Konfiguration** einrichten:
+Die Einstellungen der App im Tab Konfiguration sind in der Regel die folgenden:
 
-- `key`: Erforderlicher hexadezimaler Leseschluessel. Wird als Passwort-Option gespeichert.
-- `comport`: Serielle Schnittstelle der App, normalerweise ein stabiler Pfad unter `/dev/serial/by-id/...`.
-- `device_name`: Praefix fuer MQTT-Topics und Name des Home-Assistant-Geraets. Bei einer Migration den bisherigen Wert beibehalten.
-- `log_level`: `0` fuer Fehler, `1` fuer Betriebsprotokolle oder `2` fuer Telegrammdaten und dekodierte Werte.
+- `key`: Erforderlicher hexadezimaler Leseschlüssel. Wird als Passwort-Option gespeichert.
+- `comport`: Serielle Schnittstelle der App, am besten ein stabiler Pfad unter `/dev/serial/by-id/...`.
+- `device_name`: Präfix für die MQTT-Topics und Name des Home-Assistant-Geräts. Bei einer Migration sollte der bisherige Wert beibehalten werden.
+- `log_level`: `0` für Fehler, `1` für Betriebsprotokolle, `2` für Telegrammdaten und dekodierte Werte.
 
-Die App bezieht die MQTT-Verbindungsdaten aus dem MQTT-Dienst von Home Assistant. Vor dem Start von SmartmeterHA die offizielle Mosquitto-Broker-App installieren und konfigurieren.
+Die MQTT-Verbindungsdaten werden automatisch aus dem MQTT-Dienst von Home Assistant übernommen. Es müssen keine zusätzlichen Zugangsdaten in der App hinterlegt werden.
 
-## Home-Assistant-Entitaeten
+## Verhalten der Home-Assistant-Entitäten
 
-Der Reader veroeffentlicht MQTT-Discovery-Konfigurationen und Status-Topics mit dem bisherigen Geraetenamen als Topic-Praefix. Discovery wird nach einer `online`-Nachricht auf `homeassistant/status` erneut veroeffentlicht.
+Der Reader veröffentlicht MQTT-Discovery-Konfigurationen und Status-Topics mit dem aktuellen Gerätenamen als Topic-Präfix. Nach einer `online`-Nachricht auf `homeassistant/status` werden die Discovery-Daten erneut veröffentlicht.
 
-Eine Aenderung von `device_name` erstellt einen neuen Satz Home-Assistant-Entitaeten. Den bisherigen Namen beibehalten, um verwaiste Entitaeten und doppelte Geraete zu vermeiden.
+Wenn `device_name` geändert wird, erstellt Home Assistant ein neues Gerät und neue Entitäten. Der bisherige Name sollte deshalb beibehalten werden, um verwaiste Einträge und doppelte Geräte zu vermeiden.
 
 ## Fehlerbehebung
 
-Das App-Protokoll zeigt die ausgewaehlte serielle Schnittstelle und den MQTT-Verbindungsstatus. Pruefen, ob das konfigurierte Geraet unter `/dev/serial/by-id/` vorhanden ist und ob der Leseschluessel exakt dem vom Zaehlerbetreiber bereitgestellten hexadezimalen Schluessel entspricht.
+- Prüfe, ob die konfigurierte Schnittstelle unter `/dev/serial/by-id/` vorhanden ist.
+- Vergewissere dich, dass der Leseschlüssel exakt mit dem vom Zählerbetreiber angegebenen Schlüssel übereinstimmt.
+- Wenn keine MQTT-Verbindung aufgebaut wird, überprüfe die MQTT-Integration und stelle sicher, dass der Mosquitto-Broker gestartet ist.
+- Das App-Protokoll zeigt den gewählten seriellen Port und den MQTT-Verbindungsstatus an.
 
-Wenn keine MQTT-Verbindung hergestellt werden kann, pruefen, ob die MQTT-Integration eingerichtet und die Mosquitto-Broker-App gestartet ist.
+## Hinweis
+
+Pro App-Installation wird ein Zähler ausgelesen. Für mehrere Zähler werden mehrere Instanzen mit unterschiedlichen seriellen Schnittstellen eingerichtet.
