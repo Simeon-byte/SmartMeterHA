@@ -7,6 +7,7 @@ fi
 
 export KEY
 export COMPORT="$(bashio::config 'comport')"
+export INSTANCE_ID="$(bashio::config 'instance_id')"
 export DEVICE_NAME="$(bashio::config 'device_name')"
 export LOG_LEVEL="$(bashio::config 'log_level')"
 

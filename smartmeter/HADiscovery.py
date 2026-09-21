@@ -1,178 +1,159 @@
 import json
 
 
-def sendDiscoveryMessage(client, deviceName):
+DISCOVERY_PREFIX = "homeassistant"
+TOPIC_PREFIX = "smartmeter"
+ORIGIN = {
+    "name": "SmartmeterHA",
+    "support_url": "https://github.com/Simeon-byte/SmartMeterHA",
+}
+
+SENSORS = (
+    {
+        "key": "Zaehlernummer",
+        "name": "Zahlernummer",
+        "entity_category": "diagnostic",
+    },
+    {
+        "key": "SpannungL1",
+        "name": "Spannung L1",
+        "device_class": "voltage",
+        "state_class": "measurement",
+        "unit_of_measurement": "V",
+    },
+    {
+        "key": "SpannungL2",
+        "name": "Spannung L2",
+        "device_class": "voltage",
+        "state_class": "measurement",
+        "unit_of_measurement": "V",
+    },
+    {
+        "key": "SpannungL3",
+        "name": "Spannung L3",
+        "device_class": "voltage",
+        "state_class": "measurement",
+        "unit_of_measurement": "V",
+    },
+    {
+        "key": "StromL1",
+        "name": "Strom L1",
+        "device_class": "current",
+        "state_class": "measurement",
+        "unit_of_measurement": "A",
+    },
+    {
+        "key": "StromL2",
+        "name": "Strom L2",
+        "device_class": "current",
+        "state_class": "measurement",
+        "unit_of_measurement": "A",
+    },
+    {
+        "key": "StromL3",
+        "name": "Strom L3",
+        "device_class": "current",
+        "state_class": "measurement",
+        "unit_of_measurement": "A",
+    },
+    {
+        "key": "MomentanleistungP",
+        "name": "Momentanleistung P",
+        "device_class": "power",
+        "state_class": "measurement",
+        "unit_of_measurement": "W",
+    },
+    {
+        "key": "MomentanleistungN",
+        "name": "Momentanleistung N",
+        "device_class": "power",
+        "state_class": "measurement",
+        "unit_of_measurement": "W",
+    },
+    {
+        "key": "WirkenergieP",
+        "name": "Wirkenergie P",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+        "unit_of_measurement": "kWh",
+    },
+    {
+        "key": "WirkenergieN",
+        "name": "Wirkenergie N",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+        "unit_of_measurement": "kWh",
+    },
+    {
+        "key": "BlindleistungP",
+        "name": "Blindleistung P",
+        "device_class": "power",
+        "unit_of_measurement": "W",
+    },
+    {
+        "key": "BlindleistungN",
+        "name": "Blindleistung N",
+        "device_class": "power",
+        "unit_of_measurement": "W",
+    },
+)
+
+
+def state_topic(instance_id, key):
+    return f"{TOPIC_PREFIX}/{instance_id}/{key}"
+
+
+def discovery_topic(instance_id, key):
+    return f"{DISCOVERY_PREFIX}/sensor/{instance_id}/{key}/config"
+
+
+def build_discovery_messages(device_name, instance_id, software_version=None):
     device = {
-        "name": deviceName,
-        "identifiers": [deviceName],
+        "name": device_name,
+        "identifiers": [f"smartmeter:{instance_id}"],
+        "manufacturer": "Kaifa",
         "model": "MA309MH4LAT1",
     }
-    topics = [
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/Zaehlernummer/config",
-            "payload": {
-                "name": "Zaehlernummer",
-                "state_topic": f"{deviceName}/Zaehlernummer",
-                "value_template": "{{ value }}",
-                "unique_id": f"{deviceName}/Zaehlernummer",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/SpannungL1/config",
-            "payload": {
-                "name": "SpannungL1",
-                "state_topic": f"{deviceName}/SpannungL1",
-                "value_template": "{{ value }}",
-                "device_class": "voltage",
-                "unit_of_measurement": "V",
-                "unique_id": f"{deviceName}/SpannungL1",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/SpannungL2/config",
-            "payload": {
-                "name": "SpannungL2",
-                "state_topic": f"{deviceName}/SpannungL2",
-                "value_template": "{{ value }}",
-                "device_class": "voltage",
-                "unit_of_measurement": "V",
-                "unique_id": f"{deviceName}/SpannungL2",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/SpannungL3/config",
-            "payload": {
-                "name": "SpannungL3",
-                "state_topic": f"{deviceName}/SpannungL3",
-                "value_template": "{{ value }}",
-                "device_class": "voltage",
-                "unit_of_measurement": "V",
-                "unique_id": f"{deviceName}/SpannungL3",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/StromL1/config",
-            "payload": {
-                "name": "StromL1",
-                "state_topic": f"{deviceName}/StromL1",
-                "value_template": "{{ value }}",
-                "device_class": "current",
-                "unit_of_measurement": "A",
-                "unique_id": f"{deviceName}/StromL1",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/StromL2/config",
-            "payload": {
-                "name": "StromL2",
-                "state_topic": f"{deviceName}/StromL2",
-                "value_template": "{{ value }}",
-                "device_class": "current",
-                "unit_of_measurement": "A",
-                "unique_id": f"{deviceName}/StromL2",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/StromL3/config",
-            "payload": {
-                "name": "StromL3",
-                "state_topic": f"{deviceName}/StromL3",
-                "value_template": "{{ value }}",
-                "device_class": "current",
-                "unit_of_measurement": "A",
-                "unique_id": f"{deviceName}/StromL3",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/MomentanleistungP/config",
-            "payload": {
-                "name": "MomentanleistungP",
-                "state_topic": f"{deviceName}/MomentanleistungP",
-                "value_template": "{{ value }}",
-                "device_class": "power",
-                "unit_of_measurement": "W",
-                "unique_id": f"{deviceName}/MomentanleistungP",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/MomentanleistungN/config",
-            "payload": {
-                "name": "MomentanleistungN",
-                "state_topic": f"{deviceName}/MomentanleistungN",
-                "value_template": "{{ value }}",
-                "device_class": "power",
-                "unit_of_measurement": "W",
-                "unique_id": f"{deviceName}/MomentanleistungN",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/WirkenergieP/config",
-            "payload": {
-                "name": "WirkenergieP",
-                "state_topic": f"{deviceName}/WirkenergieP",
-                "state_class": "total_increasing",
-                "value_template": "{{ value }}",
-                "device_class": "energy",
-                "unit_of_measurement": "kWh",
-                "unique_id": f"{deviceName}/WirkenergieP",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/WirkenergieN/config",
-            "payload": {
-                "name": "WirkenergieN",
-                "state_topic": f"{deviceName}/WirkenergieN",
-                "state_class": "total_increasing",
-                "value_template": "{{ value }}",
-                "device_class": "energy",
-                "unit_of_measurement": "kWh",
-                "unique_id": f"{deviceName}/WirkenergieN",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/BlindleistungP/config",
-            "payload": {
-                "name": "BlindleistungP",
-                "state_topic": f"{deviceName}/BlindleistungP",
-                "value_template": "{{ value }}",
-                "device_class": "power",
-                "unit_of_measurement": "W",
-                "unique_id": f"{deviceName}/BlindleistungP",
-                "device": device,
-            },
-        },
-        {
-            "topic": f"homeassistant/sensor/{deviceName}/BlindleistungN/config",
-            "payload": {
-                "name": "BlindleistungN",
-                "state_topic": f"{deviceName}/BlindleistungN",
-                "value_template": "{{ value }}",
-                "device_class": "power",
-                "unit_of_measurement": "W",
-                "unique_id": f"{deviceName}/BlindleistungN",
-                "device": device,
-            },
-        },
-    ]
-    for topic in topics:
-        topic["payload"].update(
+    if software_version:
+        device["sw_version"] = software_version
+
+    messages = []
+    for sensor in SENSORS:
+        key = sensor["key"]
+        payload = {
+            "name": sensor["name"],
+            "state_topic": state_topic(instance_id, key),
+            "unique_id": f"smartmeter_{instance_id}_{key}",
+            "device": device,
+            "availability_topic": state_topic(instance_id, "status"),
+            "payload_available": "online",
+            "payload_not_available": "offline",
+            "origin": ORIGIN,
+        }
+        payload.update(
             {
-                "availability_topic": f"{deviceName}/status",
-                "payload_available": "online",
-                "payload_not_available": "offline",
+                field: sensor[field]
+                for field in (
+                    "device_class",
+                    "entity_category",
+                    "state_class",
+                    "unit_of_measurement",
+                )
+                if field in sensor
             }
         )
+        messages.append((discovery_topic(instance_id, key), payload))
+    return messages
 
-    for topic in topics:
-        client.publish(topic["topic"], json.dumps(topic["payload"]), qos=1)
+
+def sendDiscoveryMessage(client, device_name, instance_id, software_version=None):
+    for topic, payload in build_discovery_messages(
+        device_name, instance_id, software_version
+    ):
+        client.publish(topic, json.dumps(payload), qos=1)
+
+
+def clearLegacyDiscoveryMessages(client, device_name):
+    for sensor in SENSORS:
+        topic = f"{DISCOVERY_PREFIX}/sensor/{device_name}/{sensor['key']}/config"
+        client.publish(topic, "", qos=1, retain=True)

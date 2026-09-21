@@ -4,13 +4,14 @@ from time import sleep
 import binascii
 import datetime
 import logging
+import re
 import time
 import serial
 from Cryptodome.Cipher import AES
 import paho.mqtt.client as mqtt
 import os
 
-from HADiscovery import sendDiscoveryMessage
+from HADiscovery import clearLegacyDiscoveryMessages, sendDiscoveryMessage, state_topic
 
 # Environment Variable setzen, damit der Fehler nicht auf der Console Kommt
 os.environ["TERM"] = "xterm"
@@ -47,6 +48,14 @@ logger.addHandler(handler)
 
 deviceName = os.getenv("DEVICE_NAME", "SmartMeterVKW")
 logger.info("Device name: %s", deviceName)
+instanceId = os.getenv("INSTANCE_ID", "smartmeter-1")
+if re.fullmatch(r"[a-z0-9_-]+", instanceId) is None:
+    logger.error(
+        "Invalid INSTANCE_ID %r; use only lowercase letters, numbers, '-' or '_'",
+        instanceId,
+    )
+    sys.exit(2)
+logger.info("Instance ID: %s", instanceId)
 
 mqttBroker = os.getenv("MQTT_BROKER", "localhost")
 mqttuser = os.getenv("MQTT_USER", None)
@@ -83,19 +92,22 @@ def clear():
 
 
 def mqttPublish(topic, payload):
-    topic = deviceName + "/" + topic
-    response = client.publish(topic, payload, 1)  # somehow buggy?
-    if not response.is_published():
-        logger.warning("MQTT message could not be published: %s", topic)
+    topics = [state_topic(instanceId, topic), f"{deviceName}/{topic}"]
+    for publishTopic in dict.fromkeys(topics):
+        response = client.publish(publishTopic, payload, 1)
+        if not response.is_published():
+            logger.warning("MQTT message could not be published: %s", publishTopic)
 
 
-client = mqtt.Client(deviceName)
-statusTopic = f"{deviceName}/status"
+client = mqtt.Client(f"smartmeter-{instanceId}")
+statusTopic = state_topic(instanceId, "status")
+legacyStatusTopic = f"{deviceName}/status"
 client.will_set(statusTopic, "offline", qos=1, retain=True)
 try:
     client.username_pw_set(mqttuser, mqttpasswort)
     client.connect(mqttBroker, mqttport)
     client.publish(statusTopic, "online", qos=1, retain=True)
+    client.publish(legacyStatusTopic, "online", qos=1, retain=True)
     logger.info("Connected to Broker")
 except Exception as err:
     logger.error(
@@ -103,8 +115,9 @@ except Exception as err:
     )
 
 
-# Send HomeAssistant disvocery message
-sendDiscoveryMessage(client, deviceName)
+# Send HomeAssistant discovery message
+clearLegacyDiscoveryMessages(client, deviceName)
+sendDiscoveryMessage(client, deviceName, instanceId)
 
 
 # on Message Callback
@@ -116,7 +129,18 @@ def on_message(client, userdata, msg):
             logger.info(
                 "Received online status from Homeassistant - Re-sending Discovery Message"
             )
-            sendDiscoveryMessage(client, deviceName)
+            sendDiscoveryMessage(client, deviceName, instanceId)
+
+
+def on_connect(client, userdata, flags, rc):
+    if rc != 0:
+        logger.warning("MQTT connection failed with result code: %s", rc)
+        return
+    client.publish(statusTopic, "online", qos=1, retain=True)
+    client.publish(legacyStatusTopic, "online", qos=1, retain=True)
+    client.subscribe("homeassistant/status")
+    sendDiscoveryMessage(client, deviceName, instanceId)
+    logger.info("MQTT connection established; status and discovery refreshed")
 
 
 FIRST_RECONNECT_DELAY = 1
@@ -150,6 +174,7 @@ def on_disconnect(client, userdata, rc):
 client.subscribe("homeassistant/status")
 
 # Set Callbacks
+client.on_connect = on_connect
 client.on_message = on_message
 client.on_disconnect = on_disconnect
 
