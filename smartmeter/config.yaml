@@ -9,7 +9,7 @@ arch:
     - armv7
 startup: application
 boot: auto
-init: true
+init: false
 uart: true
 services:
     - mqtt:need
